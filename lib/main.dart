@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'magnetic_detection_service.dart';
+import 'network_scanner_service.dart';
 
 void main() {
   runApp(const MyApp());
@@ -9,6 +10,7 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -16,11 +18,54 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const MagneticDetectorScreen(),
+      home: const MainScreen(),
     );
   }
 }
 
+// === MAIN SCREEN (Chứa BottomNavigationBar) ===
+class MainScreen extends StatefulWidget {
+  const MainScreen({Key? key}) : super(key: key);
+
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
+  int _currentIndex = 0;
+  
+  final List<Widget> _screens = [
+    const MagneticDetectorScreen(),
+    const LanScannerScreen(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _screens[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.security),
+            label: 'Từ Trường',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.wifi_tethering),
+            label: 'Quét Wi-Fi',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// === MÀN HÌNH 1: DÒ TỪ TRƯỜNG ===
 class MagneticDetectorScreen extends StatefulWidget {
   const MagneticDetectorScreen({Key? key}) : super(key: key);
 
@@ -43,72 +88,12 @@ class _MagneticDetectorScreenState extends State<MagneticDetectorScreen> {
     super.dispose();
   }
 
-  Future<void> _showNetworkInfo() async {
-    // Yêu cầu quyền vị trí (Bắt buộc trên Android 8.1+ để lấy tên Wi-Fi và BSSID)
-    var status = await Permission.location.request();
-    
-    final info = NetworkInfo();
-    final wifiName = await info.getWifiName(); 
-    final wifiBSSID = await info.getWifiBSSID();
-    final wifiIP = await info.getWifiIP();
-    final wifiIPv6 = await info.getWifiIPv6();
-    final wifiSubmask = await info.getWifiSubmask();
-    final wifiBroadcast = await info.getWifiBroadcast();
-    final wifiGateway = await info.getWifiGatewayIP();
-
-    if (!mounted) return;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Thông tin Mạng Wi-Fi', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (status.isDenied)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 10),
-                  child: Text('⚠️ Bạn chưa cấp quyền Vị trí. Tên Wi-Fi có thể không hiển thị được.', style: TextStyle(color: Colors.red)),
-                ),
-              Text('Tên (SSID): ${wifiName ?? "Không rõ"}'),
-              Text('BSSID (MAC): ${wifiBSSID ?? "Không rõ"}'),
-              Text('IP: ${wifiIP ?? "Không rõ"}'),
-              Text('Gateway: ${wifiGateway ?? "Không rõ"}'),
-              Text('Subnet Mask: ${wifiSubmask ?? "Không rõ"}'),
-              Text('Broadcast: ${wifiBroadcast ?? "Không rõ"}'),
-              Text('IPv6: ${wifiIPv6 ?? "Không rõ"}'),
-              const Divider(),
-              const Text(
-                'Mẹo: Nếu Gateway IP và IP của điện thoại cùng dải, '
-                'bạn có thể quét dải mạng này để tìm IP của Camera ẩn.',
-                style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
-              )
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Đóng'),
-          )
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dò Camera Ẩn / Kim Loại'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.wifi_find),
-            tooltip: 'Thông tin Wi-Fi',
-            onPressed: _showNetworkInfo,
-          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Hiệu chuẩn lại (Recalibrate)',
@@ -207,6 +192,180 @@ class _MagneticDetectorScreenState extends State<MagneticDetectorScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+// === MÀN HÌNH 2: QUÉT MẠNG LAN (TCP SOCKET) ===
+class LanScannerScreen extends StatefulWidget {
+  const LanScannerScreen({Key? key}) : super(key: key);
+
+  @override
+  State<LanScannerScreen> createState() => _LanScannerScreenState();
+}
+
+class _LanScannerScreenState extends State<LanScannerScreen> {
+  final NetworkInfo _networkInfo = NetworkInfo();
+  final NetworkScannerService _scannerService = NetworkScannerService();
+  
+  String? _wifiName;
+  String? _myIp;
+  String? _subnetMask;
+  bool _isScanning = false;
+  List<DiscoveredDevice> _devices = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchNetworkData();
+  }
+
+  Future<void> _fetchNetworkData() async {
+    await Permission.location.request(); // Bắt buộc cho SSID
+    
+    final name = await _networkInfo.getWifiName();
+    final ip = await _networkInfo.getWifiIP();
+    final sm = await _networkInfo.getWifiSubmask();
+    
+    if (mounted) {
+      setState(() {
+        _wifiName = name;
+        _myIp = ip;
+        _subnetMask = sm;
+      });
+    }
+  }
+
+  void _startScan() {
+    if (_myIp == null || _subnetMask == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lỗi: Không tìm thấy IP hoặc Subnet Mask. Vui lòng kết nối Wi-Fi.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isScanning = true;
+      _devices.clear();
+    });
+
+    _scannerService.scanNetworkForCameras(_myIp!, _subnetMask!).listen(
+      (DiscoveredDevice device) {
+        setState(() {
+          _devices.add(device);
+        });
+      },
+      onDone: () {
+        setState(() {
+          _isScanning = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Đã quét xong! Tìm thấy ${_devices.length} thiết bị đáng ngờ.')),
+        );
+      },
+      onError: (e) {
+        setState(() {
+          _isScanning = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Có lỗi xảy ra: $e')),
+        );
+      }
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Quét Camera Wi-Fi'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _isScanning ? null : _fetchNetworkData,
+          )
+        ],
+      ),
+      body: Column(
+        children: [
+          // Banner thông tin mạng
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            color: Colors.blue.shade50,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Mạng Wi-Fi: ${_wifiName ?? "Không rõ"}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const SizedBox(height: 4),
+                Text('IP Điện thoại: ${_myIp ?? "Đang tải..."}'),
+                Text('Subnet Mask: ${_subnetMask ?? "Đang tải..."}'),
+              ],
+            ),
+          ),
+          
+          // Nút bấm quét
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                onPressed: _isScanning ? null : _startScan,
+                icon: _isScanning 
+                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)) 
+                  : const Icon(Icons.radar),
+                label: Text(_isScanning ? 'ĐANG QUÉT MẠNG LAN...' : 'BẮT ĐẦU QUÉT CAMERA'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _isScanning ? Colors.grey : Colors.blue,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ),
+          ),
+
+          // Danh sách kết quả
+          Expanded(
+            child: _devices.isEmpty 
+              ? Center(
+                  child: Text(
+                    _isScanning ? "Đang dò tìm..." : "Bấm nút 'Bắt đầu quét' để tìm Camera",
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: _devices.length,
+                  itemBuilder: (context, index) {
+                    final device = _devices[index];
+                    
+                    // Phân loại mức độ nguy hiểm dựa trên Port
+                    bool isHighlySuspicious = device.openPorts.contains(554) || device.openPorts.contains(8000);
+                    
+                    return Card(
+                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        side: BorderSide(color: isHighlySuspicious ? Colors.red : Colors.orange, width: 2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: ListTile(
+                        leading: Icon(
+                          isHighlySuspicious ? Icons.videocam : Icons.router, 
+                          color: isHighlySuspicious ? Colors.red : Colors.orange,
+                          size: 40,
+                        ),
+                        title: Text('IP: ${device.ip}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                        subtitle: Text('Port đang mở: ${device.openPorts.join(", ")}'),
+                        trailing: isHighlySuspicious 
+                            ? const Text('Rất Đáng Ngờ\n(RTSP/Camera)', textAlign: TextAlign.center, style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold))
+                            : const Text('Có Thể Là\nWeb/Router', textAlign: TextAlign.center, style: TextStyle(color: Colors.orange, fontSize: 12)),
+                      ),
+                    );
+                  },
+                ),
+          ),
+        ],
       ),
     );
   }
