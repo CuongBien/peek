@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../magnetic_detector/screens/magnetic_detector_screen.dart';
 import '../../lan_scanner/screens/lan_scanner_screen.dart';
+import '../../bluetooth_scanner/screens/bluetooth_scanner_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -15,6 +16,7 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _screens = [
     const MagneticDetectorScreen(),
     const LanScannerScreen(),
+    const BluetoothScannerScreen(),
   ];
 
   @override
@@ -36,6 +38,10 @@ class _MainScreenState extends State<MainScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.wifi_tethering),
             label: 'Quét Wi-Fi',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.bluetooth_searching),
+            label: 'Quét BLE',
           ),
         ],
       ),

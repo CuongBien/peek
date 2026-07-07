@@ -38,6 +38,7 @@ dependencies:
   rxdart: ^0.28.0
   network_info_plus: ^8.2.0
   permission_handler: ^12.0.3
+  flutter_blue_plus: ^2.3.10
 
 dev_dependencies:
   flutter_test:
