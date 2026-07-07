@@ -1,12 +1,6 @@
 import 'dart:async';
 import 'dart:io';
-
-class DiscoveredDevice {
-  final String ip;
-  final List<int> openPorts;
-
-  DiscoveredDevice({required this.ip, required this.openPorts});
-}
+import '../../../common/models/discovered_device.dart';
 
 class NetworkScannerService {
   // Các cổng phổ biến của Camera IP

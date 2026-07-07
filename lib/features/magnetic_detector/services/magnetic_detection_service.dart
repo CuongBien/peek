@@ -2,24 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:rxdart/rxdart.dart';
-
-/// Các trạng thái cảnh báo của ứng dụng
-enum MagneticStatus { normal, warning, danger }
-
-/// Lớp chứa kết quả đóng gói gửi ra UI
-class MagneticResult {
-  final double magnitude; // Giá trị đã làm mịn
-  final double baseline;  // Nền từ trường hiện tại
-  final double delta;     // Độ lệch
-  final MagneticStatus status;
-
-  MagneticResult({
-    required this.magnitude,
-    required this.baseline,
-    required this.delta,
-    required this.status,
-  });
-}
+import '../../../common/models/magnetic_result.dart';
 
 class MagneticDetectionService {
   // --- Cấu hình thuật toán DSP ---
