@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:network_info_plus/network_info_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'magnetic_detection_service.dart';
 
 void main() {
@@ -41,12 +43,72 @@ class _MagneticDetectorScreenState extends State<MagneticDetectorScreen> {
     super.dispose();
   }
 
+  Future<void> _showNetworkInfo() async {
+    // Yêu cầu quyền vị trí (Bắt buộc trên Android 8.1+ để lấy tên Wi-Fi và BSSID)
+    var status = await Permission.location.request();
+    
+    final info = NetworkInfo();
+    final wifiName = await info.getWifiName(); 
+    final wifiBSSID = await info.getWifiBSSID();
+    final wifiIP = await info.getWifiIP();
+    final wifiIPv6 = await info.getWifiIPv6();
+    final wifiSubmask = await info.getWifiSubmask();
+    final wifiBroadcast = await info.getWifiBroadcast();
+    final wifiGateway = await info.getWifiGatewayIP();
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Thông tin Mạng Wi-Fi', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (status.isDenied)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 10),
+                  child: Text('⚠️ Bạn chưa cấp quyền Vị trí. Tên Wi-Fi có thể không hiển thị được.', style: TextStyle(color: Colors.red)),
+                ),
+              Text('Tên (SSID): ${wifiName ?? "Không rõ"}'),
+              Text('BSSID (MAC): ${wifiBSSID ?? "Không rõ"}'),
+              Text('IP: ${wifiIP ?? "Không rõ"}'),
+              Text('Gateway: ${wifiGateway ?? "Không rõ"}'),
+              Text('Subnet Mask: ${wifiSubmask ?? "Không rõ"}'),
+              Text('Broadcast: ${wifiBroadcast ?? "Không rõ"}'),
+              Text('IPv6: ${wifiIPv6 ?? "Không rõ"}'),
+              const Divider(),
+              const Text(
+                'Mẹo: Nếu Gateway IP và IP của điện thoại cùng dải, '
+                'bạn có thể quét dải mạng này để tìm IP của Camera ẩn.',
+                style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+              )
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Đóng'),
+          )
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dò Camera Ẩn / Kim Loại'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.wifi_find),
+            tooltip: 'Thông tin Wi-Fi',
+            onPressed: _showNetworkInfo,
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Hiệu chuẩn lại (Recalibrate)',
