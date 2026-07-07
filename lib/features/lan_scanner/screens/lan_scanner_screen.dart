@@ -162,7 +162,14 @@ class _LanScannerScreenState extends State<LanScannerScreen> {
                           size: 40,
                         ),
                         title: Text('IP: ${device.ip}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                        subtitle: Text('Port đang mở: ${device.openPorts.join(", ")}'),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Port đang mở: ${device.openPorts.join(", ")}'),
+                            if (device.serverInfo != null && device.serverInfo!.isNotEmpty)
+                              Text('Hãng/Server: ${device.serverInfo}', style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.w500)),
+                          ],
+                        ),
                         trailing: isHighlySuspicious 
                             ? const Text('Rất Đáng Ngờ\n(RTSP/Camera)', textAlign: TextAlign.center, style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold))
                             : const Text('Có Thể Là\nWeb/Router', textAlign: TextAlign.center, style: TextStyle(color: Colors.orange, fontSize: 12)),

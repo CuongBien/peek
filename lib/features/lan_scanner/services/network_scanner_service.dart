@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import '../../../common/models/discovered_device.dart';
 
@@ -6,7 +7,6 @@ class NetworkScannerService {
   // Các cổng phổ biến của Camera IP
   final List<int> _cameraPorts = [554, 80, 8080, 8000];
 
-  /// Chuyển chuỗi IP thành số nguyên
   int _ipToInt(String ipAddress) {
     final parts = ipAddress.split('.');
     if (parts.length != 4) return 0;
@@ -17,12 +17,10 @@ class NetworkScannerService {
     return result;
   }
 
-  /// Chuyển số nguyên thành chuỗi IP
   String _intToIp(int ip) {
     return '${(ip >> 24) & 0xFF}.${(ip >> 16) & 0xFF}.${(ip >> 8) & 0xFF}.${ip & 0xFF}';
   }
 
-  /// Lấy danh sách IP khả dụng trong mạng
   List<String> getUsableIpRange(String ip, String subnetMask) {
     int ipInt = _ipToInt(ip);
     int maskInt = _ipToInt(subnetMask);
@@ -43,58 +41,75 @@ class NetworkScannerService {
     return ipList;
   }
 
-  /// Quét mạng LAN để tìm Camera (Sử dụng Stream để trả kết quả realtime)
   Stream<DiscoveredDevice> scanNetworkForCameras(String myIp, String subnetMask) async* {
     List<String> ipsToScan = getUsableIpRange(myIp, subnetMask);
-    
-    // Loại bỏ chính IP của điện thoại để khỏi mất công quét
     ipsToScan.remove(myIp);
 
-    // Giảm batchSize xuống thật thấp để tránh làm treo Event Loop và gây lỗi ANR trên điện thoại
     final int batchSize = 5; 
     
     for (int i = 0; i < ipsToScan.length; i += batchSize) {
       final end = (i + batchSize < ipsToScan.length) ? i + batchSize : ipsToScan.length;
       final currentBatch = ipsToScan.sublist(i, end);
 
-      // Quét song song các IP trong batch hiện tại
       final List<Future<DiscoveredDevice?>> futures = [];
       
       for (String targetIp in currentBatch) {
         futures.add(_scanSingleIp(targetIp));
       }
 
-      // Đợi kết quả của batch này
       final results = await Future.wait(futures);
       
-      // Đẩy các thiết bị tìm thấy lên Stream
       for (var device in results) {
         if (device != null) {
           yield device;
         }
       }
       
-      // QUAN TRỌNG: Dừng một nhịp nhỏ giữa các đợt quét để nhường CPU cho UI (Tránh ANR)
       await Future.delayed(const Duration(milliseconds: 50));
     }
   }
 
-  /// Quét các port của một IP cụ thể
   Future<DiscoveredDevice?> _scanSingleIp(String ip) async {
     List<int> openPorts = [];
+    String? deviceServerInfo;
 
-    // Quét song song các cổng trên cùng 1 IP
     List<Future<void>> portFutures = [];
     
     for (int port in _cameraPorts) {
       portFutures.add(
-        Socket.connect(ip, port, timeout: const Duration(milliseconds: 300)).then((socket) {
-          // Kết nối thành công
+        Socket.connect(ip, port, timeout: const Duration(milliseconds: 300)).then((socket) async {
           openPorts.add(port);
-          socket.destroy(); // Đóng kết nối ngay lập tức
+          
+          try {
+            // Gửi tín hiệu thăm dò (Fingerprinting)
+            if (port == 80 || port == 8080) {
+              // HTTP Request
+              socket.write("GET / HTTP/1.1\r\nHost: $ip\r\nConnection: close\r\n\r\n");
+            } else if (port == 554) {
+              // RTSP Request
+              socket.write("OPTIONS rtsp://$ip:554 RTSP/1.0\r\nCSeq: 1\r\n\r\n");
+            }
+
+            if (port == 80 || port == 8080 || port == 554) {
+              // Chờ phản hồi trong tối đa 500ms
+              await socket.listen((data) {
+                String response = utf8.decode(data, allowMalformed: true);
+                
+                // Trích xuất "Server:" từ Header
+                RegExp serverRegex = RegExp(r'Server:\s*(.+)\r\n', caseSensitive: false);
+                var match = serverRegex.firstMatch(response);
+                if (match != null && deviceServerInfo == null) {
+                  deviceServerInfo = match.group(1)?.trim();
+                }
+              }).asFuture().timeout(const Duration(milliseconds: 500));
+            }
+          } catch (e) {
+            // Bỏ qua lỗi đọc luồng hoặc timeout đọc
+          } finally {
+            socket.destroy();
+          }
         }).catchError((error) {
-          // Kết nối thất bại (Timeout hoặc Refused)
-          // Bỏ qua lỗi
+          // Kết nối thất bại (Timeout hoặc Refused), bỏ qua
         })
       );
     }
@@ -102,8 +117,12 @@ class NetworkScannerService {
     await Future.wait(portFutures);
 
     if (openPorts.isNotEmpty) {
-      return DiscoveredDevice(ip: ip, openPorts: openPorts);
+      return DiscoveredDevice(
+        ip: ip, 
+        openPorts: openPorts, 
+        serverInfo: deviceServerInfo,
+      );
     }
-    return null; // Không tìm thấy cổng mở nào
+    return null; 
   }
 }
