@@ -23,8 +23,8 @@ class MagneticResult {
 
 class MagneticDetectionService {
   // --- Cấu hình thuật toán DSP ---
-  final double _alphaSmooth = 0.2;    // LPF cho tín hiệu nhanh (0.1 - 0.3)
-  final double _alphaBaseline = 0.01; // LPF cho đường cơ sở cực chậm
+  final double _alphaSmooth = 0.2;     // LPF cho tín hiệu nhanh (0.1 - 0.3)
+  final double _alphaBaseline = 0.002; // Giảm mạnh Alpha để baseline bám rất chậm
   
   // --- Ngưỡng cảnh báo (Thresholds) tính theo microtesla ---
   final double _warningThreshold = 15.0; // Lệch 15 µT so với nền
@@ -68,12 +68,16 @@ class MagneticDetectionService {
     // 2. Lọc thông thấp (Low-pass Filter) để khử nhiễu (Smooth Data)
     _smoothedValue = _alphaSmooth * rawMagnitude + (1 - _alphaSmooth) * _smoothedValue!;
 
-    // 3. Cập nhật Đường cơ sở động (Dynamic Baseline) bằng LPF rất chậm
-    // Nó sẽ theo kịp từ trường Trái Đất và môi trường, nhưng bỏ qua các chóp (spikes) nhanh
-    _baselineValue = _alphaBaseline * _smoothedValue! + (1 - _alphaBaseline) * _baselineValue!;
-
-    // 4. Tính toán độ lệch (Delta)
+    // 3. Tính toán độ lệch (Delta) tạm thời
     final delta = (_smoothedValue! - _baselineValue!).abs();
+
+    // 4. Cập nhật Đường cơ sở động (Dynamic Baseline)
+    // CẢI TIẾN: Nếu đang phát hiện từ trường mạnh (vượt ngưỡng cảnh báo),
+    // chúng ta sẽ KHÔNG cập nhật baseline. Nếu cập nhật lúc này, baseline sẽ bị
+    // "kéo" theo nam châm, làm app tưởng nam châm là môi trường bình thường.
+    if (delta < _warningThreshold) {
+      _baselineValue = _alphaBaseline * _smoothedValue! + (1 - _alphaBaseline) * _baselineValue!;
+    }
 
     // 5. Đối chiếu với Ngưỡng tự động (Adaptive Threshold)
     MagneticStatus currentStatus = MagneticStatus.normal;
