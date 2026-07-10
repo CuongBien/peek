@@ -106,7 +106,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
             Text(
               "SPY SHIELD",
               style: TextStyle(
-                color: AppColors.accentCyan.withOpacity(0.8),
+                color: AppColors.accentBlue.withOpacity(0.8),
                 fontSize: 12,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 3.0,
@@ -123,19 +123,34 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
           ],
         ),
         Container(
+          width: 42,
+          height: 42,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: AppColors.accentCyan.withOpacity(0.2),
+                color: AppColors.accentBlue.withOpacity(0.15),
                 blurRadius: 8,
                 spreadRadius: 1,
               ),
             ],
           ),
-          child: const CircleAvatar(
-            backgroundColor: AppColors.glassFill,
-            child: Icon(Icons.security, color: AppColors.accentCyan),
+          child: ClipOval(
+            child: Image.asset(
+              'assets/images/app_logo.jpg',
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  color: AppColors.glassFill,
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.security,
+                    color: AppColors.accentBlue,
+                    size: 22,
+                  ),
+                );
+              },
+            ),
           ),
         )
       ],
