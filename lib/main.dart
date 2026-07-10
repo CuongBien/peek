@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/theme/app_theme.dart';
-import 'features/home/bloc/radar_bloc.dart';
-import 'features/home/screens/dashboard_screen.dart';
+import 'features/home/screens/main_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,11 +15,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Peek Camera Detector',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
-      home: BlocProvider(
-        create: (context) => RadarBloc(),
-        child: const DashboardScreen(),
-      ),
+      theme: AppTheme.lightTheme,
+      home: const MainScreen(),
     );
   }
 }

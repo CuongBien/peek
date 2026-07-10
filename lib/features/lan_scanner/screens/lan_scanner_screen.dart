@@ -38,10 +38,6 @@ class _LanScannerScreenState extends State<LanScannerScreen> {
           return Scaffold(
             appBar: AppBar(
               title: const Text("LAN WIFI SCANNER"),
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
               actions: [
                 IconButton(
                   icon: Icon(

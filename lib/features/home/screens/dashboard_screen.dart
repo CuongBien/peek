@@ -85,21 +85,8 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                   _buildRadarCard(),
                   const SizedBox(height: 30),
                   
-                  // Section Title
-                  const Text(
-                    "QUICK ACTIONS",
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 2.0,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  
-                  // Action Grid
-                  _buildActionsGrid(),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 10),
+                  _buildInfraredCameraCard(),
                 ],
               ),
             ),
@@ -279,106 +266,61 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     );
   }
 
-  Widget _buildActionsGrid() {
-    final List<Map<String, dynamic>> items = [
-      {
-        'title': 'WiFi Scanner',
-        'desc': 'Locate camera feeds over LAN',
-        'icon': Icons.wifi_find,
-        'color': AppColors.accentCyan,
-        'screen': const LanScannerScreen(),
-      },
-      {
-        'title': 'Infrared Camera',
-        'desc': 'AR lens lens detection',
-        'icon': Icons.videocam,
-        'color': AppColors.accentRed,
-        'screen': const CameraScanScreen(),
-      },
-      {
-        'title': 'Magnetic Sensor',
-        'desc': 'Trace metallic parts & lens',
-        'icon': Icons.explore,
-        'color': Colors.amber,
-        'screen': const MagneticDetectorScreen(),
-      },
-      {
-        'title': 'Bluetooth Scanner',
-        'desc': 'BLE proximity tracking',
-        'icon': Icons.bluetooth_searching,
-        'color': AppColors.accentCyan,
-        'screen': const BluetoothScannerScreen(),
-      },
-    ];
-
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: items.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 1.15,
-      ),
-      itemBuilder: (context, index) {
-        final item = items[index];
-        return GestureDetector(
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => item['screen']),
-            );
-          },
-          child: GlassCard(
-            padding: const EdgeInsets.all(14),
+  Widget _buildInfraredCameraCard() {
+    return GlassCard(
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.accentRed.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.videocam_rounded, color: AppColors.accentRed, size: 28),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: (item['color'] as Color).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: (item['color'] as Color).withOpacity(0.2),
-                      width: 1,
-                    ),
-                  ),
-                  child: Icon(
-                    item['icon'],
-                    color: item['color'],
-                    size: 22,
+                const Text(
+                  "AR Lens Finder",
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                   ),
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item['title'],
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      item['desc'],
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 10,
-                      ),
-                    ),
-                  ],
+                const SizedBox(height: 4),
+                Text(
+                  "Scan camera lens reflections with AR markers",
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
                 ),
               ],
             ),
           ),
-        );
-      },
+          const SizedBox(width: 8),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const CameraScanScreen()),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.accentBlue,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              elevation: 0,
+            ),
+            child: const Text(
+              "Launch",
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

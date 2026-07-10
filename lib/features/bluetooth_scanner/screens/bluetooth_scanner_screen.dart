@@ -102,16 +102,14 @@ class _BluetoothScannerScreenState extends State<BluetoothScannerScreen> with Ti
             return Scaffold(
               appBar: AppBar(
                 title: Text(isTracking ? "SIGNAL LOCATOR" : "BLUETOOTH BLE SCANNER"),
-                leading: IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-                  onPressed: () {
-                    if (isTracking) {
-                      context.read<BluetoothBloc>().add(StopTrackingDevice());
-                    } else {
-                      Navigator.of(context).pop();
-                    }
-                  },
-                ),
+                leading: isTracking
+                    ? IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+                        onPressed: () {
+                          context.read<BluetoothBloc>().add(StopTrackingDevice());
+                        },
+                      )
+                    : null,
                 actions: [
                   if (!isTracking)
                     IconButton(

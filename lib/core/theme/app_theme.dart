@@ -1,64 +1,66 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const Color backgroundStart = Color(0xFF121212);
-  static const Color backgroundEnd = Color(0xFF1A1A1A);
+  static const Color backgroundStart = Color(0xFFF4F7FA);
+  static const Color backgroundEnd = Color(0xFFFFFFFF);
   
-  static const Color accentCyan = Color(0xFF00E5FF);
-  static const Color accentRed = Color(0xFFFF3D00);
+  static const Color accentBlue = Color(0xFF007AFF); // Clean Apple-style light blue
+  static const Color accentCyan = Color(0xFF007AFF); // Map Cyan to Clean Light Blue
+  static const Color accentRed = Color(0xFFEF4444);  // Soft alert red
   
-  static const Color glassFill = Color(0x0AFFFFFF); // white with 4% opacity
-  static const Color glassBorder = Color(0x14FFFFFF); // white with 8% opacity
+  static const Color glassFill = Color(0xCCFFFFFF); // 80% white opacity
+  static const Color glassBorder = Color(0x33007AFF); // light blue with 20% opacity
   
-  static const Color textPrimary = Color(0xFFFFFFFF);
-  static const Color textSecondary = Color(0xFFB0B0B0);
-  static const Color textMuted = Color(0xFF666666);
+  static const Color textPrimary = Color(0xFF1E293B);   // Slate 900
+  static const Color textSecondary = Color(0xFF64748B); // Slate 500
+  static const Color textMuted = Color(0xFF94A3B8);     // Slate 400
   
-  static const Color warningOrange = Color(0xFFFF9100);
-  static const Color successGreen = Color(0xFF00E676);
+  static const Color warningOrange = Color(0xFFF59E0B); // Amber 500
+  static const Color successGreen = Color(0xFF10B981);  // Emerald 500
 }
 
 class AppTheme {
-  static ThemeData get darkTheme {
+  static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
+      brightness: Brightness.light,
       scaffoldBackgroundColor: AppColors.backgroundStart,
-      primaryColor: AppColors.accentCyan,
-      colorScheme: const ColorScheme.dark(
-        primary: AppColors.accentCyan,
-        secondary: AppColors.accentCyan,
+      primaryColor: AppColors.accentBlue,
+      colorScheme: const ColorScheme.light(
+        primary: AppColors.accentBlue,
+        secondary: AppColors.accentBlue,
         error: AppColors.accentRed,
         background: AppColors.backgroundStart,
         surface: AppColors.backgroundEnd,
       ),
-      fontFamily: 'Outfit', // A premium typography feel, falls back to system font if not imported
+      fontFamily: 'Outfit',
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         titleTextStyle: TextStyle(
           color: AppColors.textPrimary,
-          fontSize: 20,
+          fontSize: 18,
           fontWeight: FontWeight.bold,
-          letterSpacing: 1.2,
+          letterSpacing: 0.5,
         ),
-        iconTheme: IconThemeData(color: AppColors.accentCyan),
+        iconTheme: IconThemeData(color: AppColors.accentBlue),
       ),
       cardTheme: CardThemeData(
-        color: AppColors.glassFill,
+        color: Colors.white,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: AppColors.glassBorder, width: 1),
+          side: const BorderSide(color: Color(0xFFE2E8F0), width: 1),
           borderRadius: BorderRadius.circular(16),
         ),
-        elevation: 0,
+        elevation: 1,
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: Colors.transparent,
-        selectedItemColor: AppColors.accentCyan,
-        unselectedItemColor: AppColors.textMuted,
+        backgroundColor: Colors.white,
+        selectedItemColor: AppColors.accentBlue,
+        unselectedItemColor: AppColors.textSecondary,
         showUnselectedLabels: true,
         type: BottomNavigationBarType.fixed,
+        elevation: 8,
       ),
     );
   }

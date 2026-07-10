@@ -61,10 +61,6 @@ class _MagneticDetectorScreenState extends State<MagneticDetectorScreen> {
           return Scaffold(
             appBar: AppBar(
               title: const Text("MAGNETIC DETECTOR"),
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
               actions: [
                 IconButton(
                   icon: const Icon(Icons.refresh),
