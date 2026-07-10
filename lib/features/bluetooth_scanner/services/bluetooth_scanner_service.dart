@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:rxdart/rxdart.dart';
 
 class BleDeviceResult {
   final String deviceId;
@@ -36,7 +37,9 @@ class BluetoothScannerService {
     // Bắt đầu quét liên tục
     await FlutterBluePlus.startScan(timeout: const Duration(seconds: 15));
 
-    _scanSubscription = FlutterBluePlus.scanResults.listen((results) {
+    _scanSubscription = FlutterBluePlus.scanResults
+        .throttleTime(const Duration(milliseconds: 600), trailing: true)
+        .listen((results) {
       List<BleDeviceResult> devices = [];
       
       for (ScanResult r in results) {

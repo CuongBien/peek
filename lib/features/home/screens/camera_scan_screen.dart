@@ -20,7 +20,6 @@ class CameraScanScreen extends StatefulWidget {
 class _CameraScanScreenState extends State<CameraScanScreen> with TickerProviderStateMixin {
   CameraController? _cameraController;
   bool _isCameraInitialized = false;
-  bool _isCameraError = false;
   late AnimationController _bracketPulseController;
   late AnimationController _laserScanController;
   late MagneticBloc _magneticBloc;
@@ -46,7 +45,6 @@ class _CameraScanScreenState extends State<CameraScanScreen> with TickerProvider
     try {
       final cameras = await availableCameras();
       if (cameras.isEmpty) {
-        setState(() => _isCameraError = true);
         return;
       }
       
@@ -62,13 +60,7 @@ class _CameraScanScreenState extends State<CameraScanScreen> with TickerProvider
           _isCameraInitialized = true;
         });
       }
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _isCameraError = true;
-        });
-      }
-    }
+    } catch (_) {}
   }
 
   @override

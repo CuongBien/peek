@@ -6,12 +6,10 @@ import 'radar_state.dart';
 import '../../../common/models/scan_report.dart';
 import '../../../common/models/discovered_device.dart';
 import '../../bluetooth_scanner/services/bluetooth_scanner_service.dart';
-import '../../lan_scanner/services/network_scanner_service.dart';
 import '../../magnetic_detector/services/magnetic_detection_service.dart';
 
 class RadarBloc extends Bloc<RadarEvent, RadarState> {
   final BluetoothScannerService _bleService = BluetoothScannerService();
-  final NetworkScannerService _lanService = NetworkScannerService();
   final MagneticDetectionService _magneticService = MagneticDetectionService();
 
   Timer? _scanTimer;

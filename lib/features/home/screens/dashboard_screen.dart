@@ -30,11 +30,10 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       vsync: this,
       duration: const Duration(seconds: 4),
     );
-    
     _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 1500),
-    )..repeat(reverse: true);
+      duration: const Duration(milliseconds: 1500),
+    );
   }
 
   @override
@@ -52,8 +51,12 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
           if (!_rotationController.isAnimating) {
             _rotationController.repeat();
           }
+          if (!_pulseController.isAnimating) {
+            _pulseController.repeat(reverse: true);
+          }
         } else {
           _rotationController.stop();
+          _pulseController.stop();
         }
 
         if (state is RadarSuccess) {
