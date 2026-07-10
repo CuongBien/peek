@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dashboard_screen.dart';
+import 'camera_scan_screen.dart';
 import '../../lan_scanner/screens/lan_scanner_screen.dart';
 import '../../bluetooth_scanner/screens/bluetooth_scanner_screen.dart';
 import '../../magnetic_detector/screens/magnetic_detector_screen.dart';
@@ -22,16 +23,18 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
-  
-  final List<Widget> _screens = [
-    const DashboardScreen(),
-    const LanScannerScreen(),
-    const BluetoothScannerScreen(),
-    const MagneticDetectorScreen(),
-  ];
 
   @override
   Widget build(BuildContext context) {
+    // Dynamic screens list to manage camera initialization reactively
+    final List<Widget> screens = [
+      const DashboardScreen(),
+      const LanScannerScreen(),
+      const BluetoothScannerScreen(),
+      CameraScanScreen(isCameraActive: _currentIndex == 3),
+      const MagneticDetectorScreen(),
+    ];
+
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (context) => RadarBloc()),
@@ -40,17 +43,18 @@ class _MainScreenState extends State<MainScreen> {
         BlocProvider(create: (context) => MagneticBloc()..add(StartMagneticTracking())),
       ],
       child: Scaffold(
+        backgroundColor: AppColors.backgroundEnd,
         body: IndexedStack(
           index: _currentIndex,
-          children: _screens,
+          children: screens,
         ),
         bottomNavigationBar: Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             boxShadow: [
               BoxShadow(
-                color: const Color(0x0A007AFF),
+                color: Color(0x0A007AFF),
                 blurRadius: 10,
-                offset: const Offset(0, -4),
+                offset: Offset(0, -4),
               ),
             ],
           ),
@@ -66,8 +70,9 @@ class _MainScreenState extends State<MainScreen> {
                   currentIndex: _currentIndex,
                   elevation: 0,
                   backgroundColor: Colors.transparent,
-                  selectedFontSize: 11,
-                  unselectedFontSize: 11,
+                  selectedFontSize: 10,
+                  unselectedFontSize: 10,
+                  type: BottomNavigationBarType.fixed, // Support 5 items nicely
                   selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
                   unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
                   onTap: (index) {
@@ -90,6 +95,11 @@ class _MainScreenState extends State<MainScreen> {
                       icon: Icon(Icons.bluetooth_searching_rounded),
                       activeIcon: Icon(Icons.bluetooth_searching_rounded, color: AppColors.accentBlue),
                       label: 'BLE Scan',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.videocam_outlined),
+                      activeIcon: Icon(Icons.videocam_rounded, color: AppColors.accentBlue),
+                      label: 'Lens Finder',
                     ),
                     BottomNavigationBarItem(
                       icon: Icon(Icons.explore_outlined),

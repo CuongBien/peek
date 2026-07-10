@@ -71,22 +71,18 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         body: Container(
           decoration: AppTheme.backgroundDecoration,
           child: SafeArea(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
+            child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // App bar details
                   _buildHeader(),
-                  const SizedBox(height: 20),
-                  
-                  // Radar Widget Card
-                  _buildRadarCard(),
-                  const SizedBox(height: 30),
-                  
-                  const SizedBox(height: 10),
-                  _buildInfraredCameraCard(),
+                  Expanded(
+                    child: Center(
+                      child: _buildRadarContent(),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -157,93 +153,94 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     );
   }
 
-  Widget _buildRadarCard() {
+  Widget _buildRadarContent() {
     return BlocBuilder<RadarBloc, RadarState>(
       builder: (context, state) {
         final isScanning = state is RadarScanning;
         final progress = isScanning ? state.progress : 0.0;
         final statusText = isScanning ? state.statusText : "Tap to scan environment";
 
-        return GlassCard(
-          padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
-          child: Column(
-            children: [
-              const SizedBox(height: 10),
-              // Radar view
-              Center(
-                child: GestureDetector(
-                  onTap: () {
-                    if (isScanning) {
-                      context.read<RadarBloc>().add(StopRadarScan());
-                    } else {
-                      context.read<RadarBloc>().add(StartRadarScan());
-                    }
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Radar view
+            Center(
+              child: GestureDetector(
+                onTap: () {
+                  if (isScanning) {
+                    context.read<RadarBloc>().add(StopRadarScan());
+                  } else {
+                    context.read<RadarBloc>().add(StartRadarScan());
+                  }
+                },
+                child: AnimatedBuilder(
+                  animation: Listenable.merge([_rotationController, _pulseController]),
+                  builder: (context, child) {
+                    return Container(
+                      width: 240, // Tăng kích thước radar một chút cho đẹp khi đứng một mình
+                      height: 240,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: isScanning 
+                              ? AppColors.accentCyan.withOpacity(0.15) 
+                              : Colors.black.withOpacity(0.1),
+                            blurRadius: 40,
+                            spreadRadius: 8,
+                          )
+                        ],
+                      ),
+                      child: CustomPaint(
+                        painter: RadarPainter(
+                          angle: _rotationController.value * 2 * 3.14159,
+                          pulseValue: _pulseController.value,
+                          isScanning: isScanning,
+                        ),
+                      ),
+                    );
                   },
-                  child: AnimatedBuilder(
-                    animation: Listenable.merge([_rotationController, _pulseController]),
-                    builder: (context, child) {
-                      return Container(
-                        width: 200,
-                        height: 200,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: isScanning 
-                                ? AppColors.accentCyan.withOpacity(0.08) 
-                                : Colors.black.withOpacity(0.15),
-                              blurRadius: 30,
-                              spreadRadius: 5,
-                            )
-                          ],
-                        ),
-                        child: CustomPaint(
-                          painter: RadarPainter(
-                            angle: _rotationController.value * 2 * 3.14159,
-                            pulseValue: _pulseController.value,
-                            isScanning: isScanning,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
                 ),
               ),
-              const SizedBox(height: 35),
-              // Scanning status details
-              Text(
-                statusText.toUpperCase(),
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: isScanning ? AppColors.accentCyan : AppColors.textPrimary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.5,
-                ),
+            ),
+            const SizedBox(height: 40),
+            // Scanning status details
+            Text(
+              statusText.toUpperCase(),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: isScanning ? AppColors.accentCyan : AppColors.textPrimary,
+                fontSize: 18, // Tăng nhẹ size chữ tiêu đề trạng thái
+                fontWeight: FontWeight.w800,
+                letterSpacing: 2.0,
               ),
-              const SizedBox(height: 8),
-              Text(
-                isScanning ? "Please hold still while scanning..." : "Tap the scanner core to search for anomalies",
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 12,
-                ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              isScanning ? "Please hold still while scanning..." : "Tap the scanner core to search for anomalies",
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
               ),
-              
-              if (isScanning) ...[
-                const SizedBox(height: 25),
-                // Linear Progress bar
-                ClipRRect(
+            ),
+            
+            if (isScanning) ...[
+              const SizedBox(height: 30),
+              // Linear Progress bar
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: ClipRRect(
                   borderRadius: BorderRadius.circular(10),
                   child: Stack(
                     children: [
                       Container(
                         height: 6,
-                        color: Colors.white.withOpacity(0.05),
+                        color: Colors.black.withOpacity(0.05),
                       ),
                       AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
-                        width: MediaQuery.of(context).size.width * 0.8 * progress,
+                        width: MediaQuery.of(context).size.width * 0.7 * progress,
                         height: 6,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(10),
@@ -252,7 +249,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.accentCyan.withOpacity(0.5),
+                              color: AppColors.accentCyan.withOpacity(0.4),
                               blurRadius: 6,
                             ),
                           ],
@@ -261,8 +258,11 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                     ],
                   ),
                 ),
-                const SizedBox(height: 6),
-                Align(
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Align(
                   alignment: Alignment.centerRight,
                   child: Text(
                     "${(progress * 100).toInt()}%",
@@ -273,69 +273,13 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                     ),
                   ),
                 ),
-              ]
-            ],
-          ),
+              ),
+            ]
+          ],
         );
       },
     );
   }
 
-  Widget _buildInfraredCameraCard() {
-    return GlassCard(
-      padding: const EdgeInsets.all(20),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.accentRed.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.videocam_rounded, color: AppColors.accentRed, size: 28),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "AR Lens Finder",
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "Scan camera lens reflections with AR markers",
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const CameraScanScreen()),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.accentBlue,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              elevation: 0,
-            ),
-            child: const Text(
-              "Launch",
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 }

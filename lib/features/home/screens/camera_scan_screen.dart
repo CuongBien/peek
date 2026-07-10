@@ -11,7 +11,9 @@ import '../../../common/widgets/glass_card.dart';
 import '../../../core/theme/app_theme.dart';
 
 class CameraScanScreen extends StatefulWidget {
-  const CameraScanScreen({Key? key}) : super(key: key);
+  final bool isCameraActive;
+
+  const CameraScanScreen({Key? key, this.isCameraActive = true}) : super(key: key);
 
   @override
   State<CameraScanScreen> createState() => _CameraScanScreenState();
@@ -38,15 +40,29 @@ class _CameraScanScreenState extends State<CameraScanScreen> with TickerProvider
     )..repeat(reverse: true);
 
     _magneticBloc = MagneticBloc()..add(StartMagneticTracking());
-    _initializeCamera();
+    
+    if (widget.isCameraActive) {
+      _initializeCamera();
+    }
+  }
+
+  @override
+  void didUpdateWidget(CameraScanScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isCameraActive != oldWidget.isCameraActive) {
+      if (widget.isCameraActive) {
+        _initializeCamera();
+      } else {
+        _deinitializeCamera();
+      }
+    }
   }
 
   Future<void> _initializeCamera() async {
+    if (_isCameraInitialized) return;
     try {
       final cameras = await availableCameras();
-      if (cameras.isEmpty) {
-        return;
-      }
+      if (cameras.isEmpty) return;
       
       _cameraController = CameraController(
         cameras.first,
@@ -61,6 +77,18 @@ class _CameraScanScreenState extends State<CameraScanScreen> with TickerProvider
         });
       }
     } catch (_) {}
+  }
+
+  Future<void> _deinitializeCamera() async {
+    if (_cameraController != null) {
+      await _cameraController!.dispose();
+      _cameraController = null;
+      if (mounted) {
+        setState(() {
+          _isCameraInitialized = false;
+        });
+      }
+    }
   }
 
   @override
@@ -81,20 +109,26 @@ class _CameraScanScreenState extends State<CameraScanScreen> with TickerProvider
         builder: (context, magState) {
           final result = magState.currentResult;
           final isSuspicious = result != null && result.status == MagneticStatus.danger;
-          final statusColor = isSuspicious ? AppColors.accentRed : AppColors.accentCyan;
+          final statusColor = isSuspicious ? AppColors.accentRed : AppColors.accentBlue;
+          final double magnitude = result?.magnitude ?? 0.0;
+          final double delta = result?.delta ?? 0.0;
 
           return Scaffold(
             body: Stack(
               children: [
-                // 1. Camera Viewfinder (Real or Mock simulation)
-                _buildCameraViewfinder(isSuspicious),
+                // 1. Full Screen Camera Viewfinder (Real or Mock simulation)
+                Positioned.fill(
+                  child: _buildCameraViewfinder(isSuspicious),
+                ),
                 
                 // 2. Translucent dark filter overlay
-                Container(
-                  color: Colors.black.withOpacity(0.2),
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black.withOpacity(0.15),
+                  ),
                 ),
 
-                // 3. AR brackets overlay
+                // 3. AR focus brackets overlay
                 Positioned.fill(
                   child: CustomPaint(
                     painter: FocusBracketsPainter(
@@ -107,11 +141,11 @@ class _CameraScanScreenState extends State<CameraScanScreen> with TickerProvider
                 // 4. Scanning laser beam animation
                 _buildLaserBeam(isSuspicious),
 
-                // 5. High-tech HUD overlays
-                _buildHUDHeader(context, statusColor, magState),
+                // 5. Floating Dynamic status indicator (top center)
+                _buildFloatingStatusHeader(statusColor, magState),
 
-                // 6. Magnetic EMF waveform graph card at the bottom
-                _buildBottomGraphCard(statusColor, isSuspicious, magState),
+                // 6. Minimal Electromagnetic floating badge (bottom center)
+                _buildMinimalEMFBadge(statusColor, magnitude, delta),
               ],
             ),
           );
@@ -121,11 +155,17 @@ class _CameraScanScreenState extends State<CameraScanScreen> with TickerProvider
   }
 
   Widget _buildCameraViewfinder(bool isSuspicious) {
-    if (_isCameraInitialized && _cameraController != null) {
+    if (widget.isCameraActive && _isCameraInitialized && _cameraController != null) {
       return Center(
-        child: AspectRatio(
-          aspectRatio: _cameraController!.value.aspectRatio,
-          child: CameraPreview(_cameraController!),
+        child: SizedBox.expand(
+          child: FittedBox(
+            fit: BoxFit.cover,
+            child: SizedBox(
+              width: _cameraController!.value.previewSize?.height ?? 1080,
+              height: _cameraController!.value.previewSize?.width ?? 1920,
+              child: CameraPreview(_cameraController!),
+            ),
+          ),
         ),
       );
     }
@@ -137,9 +177,9 @@ class _CameraScanScreenState extends State<CameraScanScreen> with TickerProvider
         children: [
           // Cyber Grid background
           Opacity(
-            opacity: 0.15,
+            opacity: 0.1,
             child: GridPaper(
-              color: isSuspicious ? AppColors.accentRed : AppColors.accentCyan,
+              color: isSuspicious ? AppColors.accentRed : AppColors.accentBlue,
               divisions: 2,
               subdivisions: 1,
               interval: 40,
@@ -167,25 +207,25 @@ class _CameraScanScreenState extends State<CameraScanScreen> with TickerProvider
               children: [
                 Icon(
                   Icons.videocam_off_outlined,
-                  color: (isSuspicious ? AppColors.accentRed : AppColors.accentCyan).withOpacity(0.4),
-                  size: 60,
+                  color: (isSuspicious ? AppColors.accentRed : AppColors.accentBlue).withOpacity(0.4),
+                  size: 50,
                 ),
                 const SizedBox(height: 12),
                 Text(
                   "INFRARED FILTER ACTIVE",
                   style: TextStyle(
-                    color: (isSuspicious ? AppColors.accentRed : AppColors.accentCyan).withOpacity(0.6),
+                    color: (isSuspicious ? AppColors.accentRed : AppColors.accentBlue).withOpacity(0.6),
                     fontWeight: FontWeight.bold,
-                    fontSize: 12,
+                    fontSize: 11,
                     letterSpacing: 2,
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  "ISO: 800 | F/2.8 | 60FPS | AR CORE ON",
+                  "ISO: 640 | F/2.0 | 60FPS | AR MODE",
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.3),
-                    fontSize: 10,
+                    fontSize: 9,
                     letterSpacing: 1.5,
                   ),
                 ),
@@ -202,23 +242,23 @@ class _CameraScanScreenState extends State<CameraScanScreen> with TickerProvider
       animation: _laserScanController,
       builder: (context, child) {
         return Positioned(
-          top: MediaQuery.of(context).size.height * _laserScanController.value * 0.7,
+          top: MediaQuery.of(context).size.height * _laserScanController.value,
           left: 0,
           right: 0,
           child: Container(
-            height: 3,
+            height: 2,
             decoration: BoxDecoration(
               boxShadow: [
                 BoxShadow(
-                  color: isSuspicious ? AppColors.accentRed.withOpacity(0.8) : AppColors.accentCyan.withOpacity(0.8),
-                  blurRadius: 10,
-                  spreadRadius: 2,
+                  color: isSuspicious ? AppColors.accentRed.withOpacity(0.6) : AppColors.accentBlue.withOpacity(0.6),
+                  blurRadius: 8,
+                  spreadRadius: 1,
                 ),
               ],
               gradient: LinearGradient(
                 colors: [
                   Colors.transparent,
-                  isSuspicious ? AppColors.accentRed : AppColors.accentCyan,
+                  isSuspicious ? AppColors.accentRed : AppColors.accentBlue,
                   Colors.transparent,
                 ],
               ),
@@ -229,7 +269,7 @@ class _CameraScanScreenState extends State<CameraScanScreen> with TickerProvider
     );
   }
 
-  Widget _buildHUDHeader(BuildContext context, Color statusColor, MagneticState magState) {
+  Widget _buildFloatingStatusHeader(Color statusColor, MagneticState magState) {
     return Positioned(
       top: 50,
       left: 20,
@@ -239,38 +279,26 @@ class _CameraScanScreenState extends State<CameraScanScreen> with TickerProvider
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Back Button with glassmorphism
-              GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
-                child: GlassCard(
-                  padding: const EdgeInsets.all(10),
-                  borderRadius: 12,
-                  child: const Icon(
-                    Icons.arrow_back_ios_new,
-                    color: AppColors.textPrimary,
-                    size: 16,
-                  ),
-                ),
-              ),
+              const SizedBox(width: 40), // Spacer for balance
               
               // Dynamic status indicator (Scanning / Danger)
               GlassCard(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 borderRadius: 12,
-                borderSide: BorderSide(color: statusColor.withOpacity(0.4), width: 1.2),
+                borderSide: BorderSide(color: statusColor.withOpacity(0.3), width: 1.0),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      width: 8,
-                      height: 8,
+                      width: 6,
+                      height: 6,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: statusColor,
                         boxShadow: [
                           BoxShadow(
-                            color: statusColor.withOpacity(0.8),
-                            blurRadius: 6,
+                            color: statusColor,
+                            blurRadius: 4,
                             spreadRadius: 1,
                           ),
                         ],
@@ -281,7 +309,7 @@ class _CameraScanScreenState extends State<CameraScanScreen> with TickerProvider
                       magState.statusMessage.toUpperCase(),
                       style: TextStyle(
                         color: statusColor,
-                        fontSize: 11,
+                        fontSize: 10,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 2.0,
                       ),
@@ -297,27 +325,25 @@ class _CameraScanScreenState extends State<CameraScanScreen> with TickerProvider
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text("Baseline recalibrated for environmental conditions."),
-                      backgroundColor: Colors.indigo,
+                      backgroundColor: AppColors.accentBlue,
                     ),
                   );
                 },
                 child: GlassCard(
-                  padding: const EdgeInsets.all(10),
-                  borderRadius: 12,
+                  padding: const EdgeInsets.all(8),
+                  borderRadius: 10,
                   child: const Icon(
                     Icons.refresh,
                     color: AppColors.textPrimary,
-                    size: 18,
+                    size: 16,
                   ),
                 ),
               ),
             ],
           ),
           
-          const SizedBox(height: 15),
-          
-          // Lens flare warnings
-          if (magState.currentResult != null && magState.currentResult!.status == MagneticStatus.danger)
+          if (magState.currentResult != null && magState.currentResult!.status == MagneticStatus.danger) ...[
+            const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
@@ -327,122 +353,63 @@ class _CameraScanScreenState extends State<CameraScanScreen> with TickerProvider
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.report, color: AppColors.accentRed, size: 18),
-                  SizedBox(width: 10),
+                  Icon(Icons.report, color: AppColors.accentRed, size: 16),
+                  SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      "Lens Magnetic Anomaly Detected! Check the direction.",
-                      style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                      "Lens Magnetic Anomaly Detected!",
+                      style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
               ),
             ),
+          ]
         ],
       ),
     );
   }
 
-  Widget _buildBottomGraphCard(Color statusColor, bool isSuspicious, MagneticState magState) {
-    final result = magState.currentResult;
-    final double magnitude = result?.magnitude ?? 0.0;
-    final double delta = result?.delta ?? 0.0;
-
+  Widget _buildMinimalEMFBadge(Color statusColor, double magnitude, double delta) {
     return Positioned(
       bottom: 24,
-      left: 16,
-      right: 16,
-      child: GlassCard(
-        blur: 20,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "ELECTROMAGNETIC FIELD FLUX",
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      "${magnitude.toStringAsFixed(1)} µT",
-                      style: TextStyle(
-                        color: statusColor,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ],
-                ),
-                
-                // Anomaly delta score
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: statusColor.withOpacity(0.3)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      const Text(
-                        "DELTA",
-                        style: TextStyle(color: AppColors.textSecondary, fontSize: 8, fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        "${delta >= 0 ? '+' : ''}${delta.toStringAsFixed(1)} µT",
-                        style: TextStyle(
-                          color: statusColor,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              ],
-            ),
-            
-            const SizedBox(height: 15),
-
-            // EMF Wave Line graph
-            SizedBox(
-              height: 70,
-              width: double.infinity,
-              child: CustomPaint(
-                painter: WaveGraphPainter(
-                  history: magState.history.isEmpty ? [40, 42, 45, 41, 40, 44, 45, 46, 42, 40] : magState.history,
-                  isSuspicious: isSuspicious,
+      left: 20,
+      right: 20,
+      child: Center(
+        child: GlassCard(
+          borderRadius: 16,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.explore_rounded, color: statusColor, size: 16),
+              const SizedBox(width: 8),
+              Text(
+                "EMF: ${magnitude.toStringAsFixed(1)} µT",
+                style: TextStyle(
+                  color: statusColor,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 13,
+                  letterSpacing: 0.5,
                 ),
               ),
-            ),
-            
-            const SizedBox(height: 10),
-            
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "HISTORY RATE: 60Hz",
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 9, fontWeight: FontWeight.bold),
+              const SizedBox(width: 10),
+              Container(
+                width: 1.0,
+                height: 12,
+                color: AppColors.textSecondary.withOpacity(0.2),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                "Delta: ${delta >= 0 ? '+' : ''}${delta.toStringAsFixed(1)} µT",
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
                 ),
-                Text(
-                  "BANDWIDTH: 100 µT",
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 9, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
