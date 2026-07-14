@@ -10,11 +10,11 @@ The application is structured using **Feature-First / Clean Architecture** princ
 
 | Dashboard & Radar | WiFi Subnet Scanner | BLE Proximity Detector | Camera Lens Finder |
 |:---:|:---:|:---:|:---:|
-| `<!-- TODO: Add Dashboard Screenshot Here -->` | `<!-- TODO: Add WiFi Scan Screenshot Here -->` | `<!-- TODO: Add BLE Scan Screenshot Here -->` | `<!-- TODO: Add Lens Finder Screenshot Here -->` |
+| [![dashboard.jpg](https://i.postimg.cc/x1dGpk0G/dashboard.jpg)](https://postimg.cc/RNjnNZJq) | [![lan-wifi-scanner.jpg](https://i.postimg.cc/7ZL1tCxM/lan-wifi-scanner.jpg)](https://postimg.cc/GHZsHmTH) | [![ble-scanner.jpg](https://i.postimg.cc/FspgxbQL/ble-scanner.jpg)](https://postimg.cc/vc1VYVTY) | [![lens-finder.jpg](https://i.postimg.cc/mgr3pcbS/lens-finder.jpg)](https://postimg.cc/QHRWHdKB) |
 
 | Magnetic Detector | Scan Report & Analytics |
 |:---:|:---:|
-| `<!-- TODO: Add EMF Scan Screenshot Here -->` | `<!-- TODO: Add Report Screenshot Here -->` |
+| [![magnetic-detector.jpg](https://i.postimg.cc/fRb7q3wC/magnetic-detector.jpg)](https://postimg.cc/6yDGyp44) | [![scan-report.jpg](https://i.postimg.cc/kg5NYVnz/scan-report.jpg)](https://postimg.cc/1fLNf3Vr) |
 
 ---
 
